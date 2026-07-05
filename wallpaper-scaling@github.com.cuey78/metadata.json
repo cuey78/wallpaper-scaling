@@ -1,0 +1,8 @@
+{
+    "name": "Wallpaper Scaling Options",
+    "description": "Quick access to wallpaper scaling modes in the quick settings panel - Center, Scale, Stretch, Zoom, Tile, and Span monitors",
+    "uuid": "wallpaper-scaling@github.com.cuey78",
+    "shell-version": ["49", "50"],
+    "version": 1,
+    "url": "https://github.com/cuey78/gnome-wallpaper-scaling"
+}
