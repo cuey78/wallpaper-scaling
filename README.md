@@ -25,7 +25,7 @@ Instead of opening Settings every time you want to change how your wallpaper is 
 
 ## Screenshot
 
-> Add a screenshot here after installing the extension.
+<img src="/Screenshot.png" alt="App Screenshot" width="500">
 
 Example:
 
