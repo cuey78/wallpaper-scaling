@@ -44,7 +44,7 @@ Example:
 Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/wallpaper-scaling-toggle.git
+git clone https://github.com/cuey78/wallpaper-scaling-toggle.git
 ```
 
 Create the extensions directory if it doesn't exist:
