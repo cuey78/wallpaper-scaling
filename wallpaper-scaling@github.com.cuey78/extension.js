@@ -17,7 +17,7 @@ class WallpaperScalingToggle extends QuickSettings.QuickMenuToggle {
 
         this._settings = settings;
 
-        // ✅ Main button click → open GNOME wallpaper settings
+        // Main button click → open GNOME wallpaper settings
         this.connect('clicked', () => {
             Util.spawnCommandLine('gnome-control-center background');
         });
@@ -36,12 +36,8 @@ class WallpaperScalingToggle extends QuickSettings.QuickMenuToggle {
         if (currentLabel)
             this.subtitle = currentLabel;
 
-        // Track menu items for cleanup
-        this._menuItems = [];
-
         for (const [value, label] of options) {
             const item = new PopupMenu.PopupMenuItem(label);
-            this._menuItems.push(item);
 
             item.connect('activate', () => {
                 this._settings.set_string('picture-options', value);
@@ -50,32 +46,21 @@ class WallpaperScalingToggle extends QuickSettings.QuickMenuToggle {
 
             this.menu.addMenuItem(item);
         }
-        
-        // Listen for changes to update subtitle
-        this._settingsChangedId = this._settings.connect(
-            'changed::picture-options',
-            () => {
-                const newValue = this._settings.get_string('picture-options');
-                const newLabel = options.find(([v]) => v === newValue)?.[1];
-                if (newLabel) this.subtitle = newLabel;
-            }
-        );
     }
-    
+
     destroy() {
-        // Clean up signal connections
-        if (this._settingsChangedId) {
-            this._settings.disconnect(this._settingsChangedId);
-            this._settingsChangedId = null;
+        // Clean up all menu items
+        this.menu.removeAll();
+        
+        // Disconnect from settings
+        if (this._settings) {
+            this._settings = null;
         }
         
-        // Clean up menu items
-        if (this._menuItems) {
-            this._menuItems.forEach(item => item.destroy());
-            this._menuItems = null;
+        // Call parent destroy if it exists
+        if (super.destroy) {
+            super.destroy();
         }
-        
-        super.destroy();
     }
 });
 
@@ -89,37 +74,53 @@ class WallpaperIndicator extends QuickSettings.SystemIndicator {
 
         this.quickSettingsItems.push(this._toggle);
 
-        Main.panel.statusArea.quickSettings.addExternalIndicator(this);
+        // Check if we're already added before adding again
+        const quickSettings = Main.panel.statusArea.quickSettings;
+        if (!quickSettings._wallpaperIndicator) {
+            quickSettings.addExternalIndicator(this);
+            quickSettings._wallpaperIndicator = this;
+        }
     }
-    
+
     destroy() {
-        // Clean up the toggle
+        // Remove from quick settings
+        const quickSettings = Main.panel.statusArea.quickSettings;
+        if (quickSettings._wallpaperIndicator === this) {
+            quickSettings._wallpaperIndicator = null;
+        }
+
+        // Destroy the toggle
         if (this._toggle) {
             this._toggle.destroy();
             this._toggle = null;
         }
-        
-        super.destroy();
+
+        // Call parent destroy
+        if (super.destroy) {
+            super.destroy();
+        }
     }
 });
 
-// Use a module-level variable to track if we're already loaded
-let isExtensionLoaded = false;
-
 export default class Extension {
     enable() {
-        // Prevent double-loading
-        if (isExtensionLoaded) {
-            console.warn('Wallpaper Scaling Toggle: Already loaded, skipping');
+        // Check if already enabled
+        if (this._indicator) {
             return;
         }
-        
+
         this._settings = new Gio.Settings({
             schema_id: 'org.gnome.desktop.background',
         });
 
+        // Check if there's already an indicator from a previous session
+        const quickSettings = Main.panel.statusArea.quickSettings;
+        if (quickSettings._wallpaperIndicator) {
+            // Remove the old one first
+            quickSettings._wallpaperIndicator.destroy();
+        }
+
         this._indicator = new WallpaperIndicator(this._settings);
-        isExtensionLoaded = true;
     }
 
     disable() {
@@ -127,8 +128,16 @@ export default class Extension {
             this._indicator.destroy();
             this._indicator = null;
         }
-        
-        this._settings = null;
-        isExtensionLoaded = false;
+
+        if (this._settings) {
+            this._settings = null;
+        }
+
+        // Clean up any leftover references
+        const quickSettings = Main.panel.statusArea.quickSettings;
+        if (quickSettings._wallpaperIndicator) {
+            quickSettings._wallpaperIndicator.destroy();
+            quickSettings._wallpaperIndicator = null;
+        }
     }
 }
